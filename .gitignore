@@ -1,0 +1,46 @@
+# --- Terraform -------------------------------------------------------------
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+tfplan
+plan.txt
+
+# Variable files that hold real values. The committed files under envs/ are
+# non-secret, but anything a developer adds locally should stay local.
+*.auto.tfvars
+*.auto.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI configuration and local plugin cache
+.terraformrc
+terraform.rc
+.terraform.lock.hcl.bak
+
+# Backend configs contain environment-specific storage account names.
+envs/*.backend.hcl
+!envs/*.backend.hcl.example
+
+# Exception: the provider dependency lock file IS committed on purpose so that
+# every environment and CI resolve byte-identical providers.
+!.terraform.lock.hcl
+
+# --- Local binaries --------------------------------------------------------
+.bin/
+
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+.python_packages/
+
+# --- Editors / OS ----------------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
+*.swp

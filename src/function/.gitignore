@@ -1,0 +1,13 @@
+# Local-only settings; never commit the real file.
+local.settings.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.python_packages/
+.azurefunctions/
+
+# Node
+node_modules/

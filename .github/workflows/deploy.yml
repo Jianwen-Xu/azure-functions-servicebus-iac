@@ -1,0 +1,94 @@
+name: deploy
+
+# Manual promotion only. Continuous deployment of infrastructure without a human
+# in the loop is how a bad plan reaches production at 03:00.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [dev, prod]
+        required: true
+      apply:
+        description: Apply the plan (leave unchecked for a dry run)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  # One run per environment, ever. A queued run waits rather than racing.
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  TF_VERSION: "1.9.8"
+  TF_IN_AUTOMATION: "true"
+  ARM_USE_OIDC: "true"
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  deploy:
+    name: ${{ inputs.environment }} (${{ inputs.apply && 'apply' || 'plan' }})
+    runs-on: ubuntu-latest
+    # Attach a required reviewer to the dev/prod GitHub environment to gate this.
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Render backend config
+        run: |
+          cat > envs/${{ inputs.environment }}.backend.hcl <<EOF
+          resource_group_name  = "${{ vars.TF_STATE_RESOURCE_GROUP }}"
+          storage_account_name = "${{ vars.TF_STATE_STORAGE_ACCOUNT }}"
+          container_name       = "${{ vars.TF_STATE_CONTAINER }}"
+          key                  = "sbarch/${{ inputs.environment }}/terraform.tfstate"
+          use_azuread_auth     = true
+          EOF
+
+      - name: terraform init
+        run: terraform init -backend-config=envs/${{ inputs.environment }}.backend.hcl -input=false
+
+      - name: terraform plan
+        run: |
+          terraform plan -input=false -lock=false -no-color -out=tfplan \
+            -var-file=envs/${{ inputs.environment }}.tfvars
+
+      - name: terraform apply
+        if: ${{ inputs.apply }}
+        run: terraform apply -input=false -auto-approve tfplan
+
+      # Provisioning the host and shipping the code are separate concerns: the
+      # app name and plan SKU are read back from state rather than duplicated in
+      # this workflow, so renaming the Function App cannot silently break deploy.
+      - name: Resolve Function App name and publishing SKU
+        if: ${{ inputs.apply }}
+        id: app
+        run: |
+          echo "name=$(terraform output -raw function_app_name)" >> "$GITHUB_OUTPUT"
+          case "$(terraform output -raw function_plan_sku)" in
+            Y1)  echo "sku=consumption"    >> "$GITHUB_OUTPUT" ;;
+            EP*) echo "sku=elasticpremium" >> "$GITHUB_OUTPUT" ;;
+            *)   echo "unknown plan SKU" >&2; exit 1 ;;
+          esac
+
+      - name: Publish the function package
+        if: ${{ inputs.apply }}
+        uses: azure/functions-action@v1
+        with:
+          app-name: ${{ steps.app.outputs.name }}
+          package: src/function
+          sku: ${{ steps.app.outputs.sku }}
+          # Authentication reuses the OIDC federated credential from the env
+          # block above, so no publish profile secret is stored.

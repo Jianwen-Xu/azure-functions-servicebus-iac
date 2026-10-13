@@ -1,0 +1,66 @@
+// ---------------------------------------------------------------------------
+// Copy to terraform.tfvars (dev) or use the files in envs/.
+//   terraform plan -var-file=envs/dev.tfvars
+// ---------------------------------------------------------------------------
+
+project     = "sbarch"
+environment = "dev"
+location    = "westeurope"
+
+// Pin this once for a real environment so names never change:
+// name_suffix = "a1b2c"
+
+tags = {
+  owner   = "jianwen.xu"
+  costcentre = "personal"
+}
+
+// --- Storage ---------------------------------------------------------------
+storage_replication_type = "LRS"
+storage_allowed_ip_rules = [] # e.g. ["203.0.113.7/32"] for a dev workstation
+
+// --- Service Bus -----------------------------------------------------------
+servicebus_sku         = "Standard"
+servicebus_local_auth_enabled = false
+
+servicebus_queues = {
+  "ingest" = {
+    max_delivery_count                   = 10
+    lock_duration                        = "PT1M"
+    default_message_ttl                  = "P14D"
+    dead_lettering_on_message_expiration = true
+    max_size_in_megabytes                = 1024
+  }
+  "ingest-poison" = {
+    max_delivery_count                   = 1
+    dead_lettering_on_message_expiration = false
+    default_message_ttl                  = "P7D"
+  }
+}
+
+servicebus_topics = {
+  "archive-completed" = {
+    subscriptions = {
+      "audit" = {
+        max_delivery_count                   = 10
+        dead_lettering_on_message_expiration = true
+      }
+    }
+  }
+}
+
+// --- Compute ---------------------------------------------------------------
+function_plan_sku = "Y1"
+
+function_application_stack = {
+  python_version = "3.12"
+}
+
+function_app_settings = {
+  ARCHIVE_BATCH_SIZE = "100"
+  LOG_LEVEL          = "INFO"
+}
+
+archive_container_name = "archive"
+log_retention_days     = 30
+budget_amount          = 50

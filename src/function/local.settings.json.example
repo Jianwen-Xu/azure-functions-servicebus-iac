@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "ServiceBusConnection__fullyQualifiedNamespace": "<namespace>.servicebus.windows.net",
+    "SERVICEBUS_QUEUE_NAME": "ingest",
+    "STORAGE_BLOB_ENDPOINT": "https://<account>.blob.core.windows.net/",
+    "ARCHIVE_CONTAINER": "archive",
+    "ARCHIVE_CONTAINER_URL": "https://<account>.blob.core.windows.net/archive",
+    "ARCHIVE_BATCH_SIZE": "100"
+  }
+}

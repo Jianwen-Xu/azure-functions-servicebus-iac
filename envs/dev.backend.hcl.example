@@ -1,0 +1,16 @@
+# Example remote state backend configuration (partial config for `terraform init`).
+#
+#   1. Run the one-time bootstrap:   cd bootstrap && terraform init && terraform apply
+#   2. Copy this file:               cp envs/dev.backend.hcl.example envs/dev.backend.hcl
+#   3. Init with it:                 terraform init -backend-config=envs/dev.backend.hcl
+#
+# envs/*.backend.hcl is gitignored because it contains the state storage account
+# name, which is environment-specific.
+
+resource_group_name  = "rg-tfstate"
+storage_account_name = "sttfstate<your-suffix>"
+container_name       = "tfstate"
+key                  = "sbarch/dev/terraform.tfstate"
+
+# Prefer Entra ID auth over an account key:
+use_azuread_auth = true
