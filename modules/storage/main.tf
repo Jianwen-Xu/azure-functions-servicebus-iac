@@ -41,7 +41,7 @@ resource "azurerm_storage_account" "this" {
   network_rules {
     # Deny by default. "AzureServices" lets platform services (including the
     # Function App) reach the account; ip_rules are for developer machines.
-    default_action             = var.allowed_ip_rules == [] && var.allowed_subnet_ids == [] ? "Allow" : "Deny"
+    default_action             = length(var.allowed_ip_rules) == 0 && length(var.allowed_subnet_ids) == 0 ? "Allow" : "Deny"
     bypass                     = ["AzureServices", "Logging", "Metrics"]
     ip_rules                   = var.allowed_ip_rules
     virtual_network_subnet_ids = var.allowed_subnet_ids

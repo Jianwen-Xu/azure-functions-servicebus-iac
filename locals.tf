@@ -2,12 +2,14 @@ locals {
   prefix = "${var.project}-${var.environment}"
   suffix = var.name_suffix != "" ? var.name_suffix : random_string.suffix[0].result
 
+  # Every resource carries these three; anything else (owner, cost centre) is
+  # supplied through var.tags. Indexing var.tags directly here would fail
+  # whenever a caller leaves tags at its default of {}.
   tags = merge(
     {
       project     = var.project
       environment = var.environment
       managed_by  = "terraform"
-      owner       = var.tags["owner"]
     },
     var.tags,
   )

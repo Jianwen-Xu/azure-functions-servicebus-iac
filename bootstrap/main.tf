@@ -29,12 +29,6 @@ provider "azurerm" {
   }
 }
 
-variable "subscription_id" {
-  description = "Target subscription. Leave empty to use the CLI's current subscription."
-  type        = string
-  default     = ""
-}
-
 variable "location" {
   description = "Region for the state storage account."
   type        = string
@@ -61,12 +55,6 @@ variable "container_name" {
   description = "Blob container that stores state files."
   type        = string
   default     = "tfstate"
-}
-
-variable "environments" {
-  description = "Environment keys to pre-create state paths for."
-  type        = list(string)
-  default     = ["dev", "prod"]
 }
 
 locals {
